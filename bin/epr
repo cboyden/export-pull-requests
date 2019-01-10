@@ -170,6 +170,13 @@ def github(user, repo)
         body = body.slice(0, DEFAULT_BODY_LENGTH - 3) << "..." if body.size > DEFAULT_BODY_LENGTH unless body == nil
         rows[-1].insert(4, body)
       end
+
+      if $data
+        extras = $gh.public_send(method).labels.list(:user => user,
+                               :repo => repo,
+                               :issue_id => item.number)
+        rows[-1].insert(4, extras)
+      end
     end
   end
 
@@ -218,6 +225,7 @@ def export_repos(argv)
   rows = []
   rows << %w[Repository Type # User Title State Created Updated URL]
   rows[-1].insert(4, "Body") if $body
+  rows[-1].insert(4, "Extra data") if $data
 
   repos = parse_repos(argv)
   repos.each do |user, repo|
@@ -250,6 +258,7 @@ $filter = "open"
 $provider = ENV["EPR_SERVICE"] || SERVICES[0]
 $token = lookup_token
 $body = false
+$data = false
 
 parser = OptionParser.new do |opts|
   opts.banner = "usage: #{File.basename($0)} [-bhv] [-e url] [-s state] [-t token] [-c user1,user2...] user/repo1 [user/repo2...]"
@@ -277,6 +286,10 @@ parser = OptionParser.new do |opts|
 
   opts.on "-l", "--labels=LABEL(S)", "Export items with the given label(s) (GitHub only)" do |l|
     $labels = l
+  end
+
+  opts.on "-d", "--data", "Include extra data (labels, milestones) in the output (GitHub only)" do
+    $data = true
   end
 
   opts.on "-h", "--help", "Show this message" do
